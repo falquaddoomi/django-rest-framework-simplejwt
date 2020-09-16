@@ -35,7 +35,7 @@ class TokenViewBase(generics.GenericAPIView):
             # FIXME: which expiration timeframe should we use, access or refresh, or...?
             expiration = (aware_utcnow() + api_settings.REFRESH_TOKEN_LIFETIME)
             response.set_cookie(
-                api_settings.JWT_AUTH_COOKIE, serializer.validated_data['access'],
+                api_settings.JWT_AUTH_COOKIE, serializer.validated_data,
                 expires=expiration, httponly=False
             )
 
