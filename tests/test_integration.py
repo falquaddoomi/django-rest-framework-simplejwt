@@ -1,4 +1,5 @@
 from datetime import timedelta
+import json
 
 from rest_framework_simplejwt.compat import reverse
 from rest_framework_simplejwt.settings import api_settings
@@ -118,3 +119,43 @@ class TestTestView(APIViewTestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data['foo'], 'bar')
+
+    def test_user_can_auth_via_cookies_if_enabled(self):
+        with override_api_settings(JWT_AUTH_COOKIE='test_cookie'):
+            res = self.client.post(
+                reverse('token_obtain_pair'),
+                data={
+                    User.USERNAME_FIELD: self.username,
+                    'password': self.password,
+                },
+            )
+
+            access = res.data['access']
+            refresh = res.data['refresh']
+
+            # verify that we received a cookie with the same token inside it
+            self.assertIn(api_settings.JWT_AUTH_COOKIE, res.cookies)
+            self.assertEqual(str(res.data), res.cookies.get(api_settings.JWT_AUTH_COOKIE).value)
+
+            self.authenticate_with_cookie(api_settings.JWT_AUTH_COOKIE, access)
+
+            with override_api_settings(AUTH_TOKEN_CLASSES=('rest_framework_simplejwt.tokens.AccessToken',)):
+                res = self.view_get()
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.data['foo'], 'bar')
+
+            res = self.client.post(
+                reverse('token_refresh'),
+                data={'refresh': refresh},
+            )
+
+            access = res.data['access']
+
+            self.authenticate_with_cookie(api_settings.JWT_AUTH_COOKIE, access)
+
+            with override_api_settings(AUTH_TOKEN_CLASSES=('rest_framework_simplejwt.tokens.AccessToken',)):
+                res = self.view_get()
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.data['foo'], 'bar')

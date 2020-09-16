@@ -36,6 +36,14 @@ class APIViewTestCase(TestCase):
         """
         self.client.credentials(HTTP_AUTHORIZATION='{} {}'.format(type, token))
 
+    def authenticate_with_cookie(self, type, token):
+        """
+        Authenticates requests with the given token via a cookie (instead of an authorization header).
+
+        The 'type' field determines the name of the cookie.
+        """
+        self.client.cookies[type] = token
+
     view_name = None
 
     view_post = client_action_wrapper('post')

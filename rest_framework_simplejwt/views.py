@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from . import serializers
 from .authentication import AUTH_HEADER_TYPES
 from .exceptions import InvalidToken, TokenError
-
+from .settings import api_settings
+from .utils import aware_utcnow
 
 class TokenViewBase(generics.GenericAPIView):
     permission_classes = ()
@@ -28,7 +29,17 @@ class TokenViewBase(generics.GenericAPIView):
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+        if api_settings.JWT_AUTH_COOKIE:
+            # FIXME: which expiration timeframe should we use, access or refresh, or...?
+            expiration = (aware_utcnow() + api_settings.REFRESH_TOKEN_LIFETIME)
+            response.set_cookie(
+                api_settings.JWT_AUTH_COOKIE, serializer.validated_data['access'],
+                expires=expiration, httponly=False
+            )
+
+        return response
 
 
 class TokenObtainPairView(TokenViewBase):

@@ -26,9 +26,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         header = self.get_header(request)
         if header is None:
-            return None
+            if api_settings.JWT_AUTH_COOKIE:
+                raw_token = request.COOKIES.get(api_settings.JWT_AUTH_COOKIE)
+            else:
+                return None
+        else:
+            raw_token = self.get_raw_token(header)
 
-        raw_token = self.get_raw_token(header)
         if raw_token is None:
             return None
 
